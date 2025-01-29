@@ -1,0 +1,107 @@
+server:
+  port: 8000
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+spring:
+  config:
+    activate:
+      on-profile: default
+
+  application:
+    name: gateway
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        prefetch: 5
+  cloud:
+    gateway:
+      default-filters:
+        - name: GlobalFilter
+          args:
+            baseMessage: Spring Cloud Gateway Global Filter
+            preLogger: true
+            postLogger: true
+      routes:
+        - id: users
+          uri: lb://USERS
+          predicates:
+            - Path=/users/login
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+
+        - id: users
+          uri: lb://USERS
+          predicates:
+            - Path=/users
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+
+        - id: users
+          uri: lb://USERS
+          predicates:
+            - Path=/users/actuator/**
+            - Method=GET,POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+
+        - id: users
+          uri: lb://USERS
+          predicates:
+            - Path=/users/**
+            - Method=GET
+          filters:
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+            - AuthorizationHeaderFilter
+
+        - id: catalogs
+          uri: lb://CATALOGS
+          predicates:
+            - Path=/catalogs/**
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/orders/(?<segment>.*), /$\{segment}
+
+        - id: orders
+          uri: lb://ORDERS
+          predicates:
+            - Path=/orders/actuator/**
+            - Method=GET,POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/orders/(?<segment>.*), /$\{segment}
+
+        - id: orders
+          uri: lb://ORDERS
+          predicates:
+            - Path=/orders/**
+
+        - id: products
+          uri: lb://PRODUCTS
+          predicates:
+            - Path=/products/**
+
+        - id: reviews
+          uri: lb://REVIEWS
+          predicates:
+            - Path=/reviews/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, beans, httpexchanges, busrefresh, info, metrics, prometheus

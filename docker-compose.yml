@@ -1,0 +1,127 @@
+version: '3.8'
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  zookeeper:
+    container_name: zookeeper
+    image: 'zookeeper:3.7'
+    ports:
+      - '2181:2181'
+
+  kafka1:
+    container_name: kafka1
+    image: 'confluentinc/cp-kafka:latest'
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - '29092:29092'
+
+  kafka2:
+    container_name: kafka2
+    image: 'confluentinc/cp-kafka:latest'
+    depends_on:
+      - zookeeper
+      - kafka1
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092,PLAINTEXT_HOST://localhost:39092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - '39092:39092'
+
+  kafka3:
+    container_name: kafka3
+    image: 'confluentinc/cp-kafka:latest'
+    depends_on:
+      - zookeeper
+      - kafka1
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092,PLAINTEXT_HOST://localhost:49092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - '49092:49092'
+
+  mariadb:
+    container_name: mariadb
+    image: 'mariadb:latest'
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: mariadb
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+    volumes:
+      - ./infras/mariadb/data:/var/lib/mysql
+    networks:
+      - default
+
+  connect:
+    container_name: connect
+    image: 'confluentinc/cp-kafka-connect:latest'
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - mariadb
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka1:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: compose-connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: compose-connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: compose-connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+    ports:
+      - '8083:8083'
+    volumes:
+      - ./infras/kafka/jars:/etc/kafka-connect/jars
+
+  axonserver:
+    container_name: axonserver
+    image: axoniq/axonserver
+    ports:
+      - "8024:8024"
+      - "8124:8124"
+    volumes:
+      - ./infras/axonserver/config:/axonserver/config
+      - ./infras/axonserver/events:/axonserver/events
+      - ./infras/axonserver/exts:/axonserver/exts
+      - ./infras/axonserver/log:/axonserver/log
+      - ./infras/axonserver/plugins:/axonserver/plugins
+
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./infras/mongodb/data:/data/db

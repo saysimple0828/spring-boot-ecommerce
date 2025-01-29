@@ -1,0 +1,31 @@
+server:
+  port: 8888
+
+spring:
+#  profiles:
+#    active: native
+  application:
+    name: configs
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:///C://Users/Administrator/Documents/GitHub/decosk-api/configs/envs
+        git: #default
+          uri: https://github.com/saysimple0828/decosk-api-secret
+          default-label: main
+        bootstrap: true
+#              basedir: /Users/dowonlee/Desktop/Work/tmp/config-repo
+#              username: [username]
+#              password: [password]
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, busrefresh, refresh, metrics
