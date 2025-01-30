@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "UserUpdatedEvent",
+  "namespace": "org.saysimple.schema.user",
+  "fields": [
+    { "name": "userId", "type": "string" },
+    { "name": "phoneNumber", "type": "string" },
+    { "name": "name", "type": "string" }
+  ]
+}

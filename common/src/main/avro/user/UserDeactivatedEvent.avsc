@@ -1,0 +1,8 @@
+{
+  "type": "record",
+  "name": "UserDeactivatedEvent",
+  "namespace": "org.saysimple.schema.user",
+  "fields": [
+    { "name": "userId", "type": "string" }
+  ]
+}

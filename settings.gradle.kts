@@ -1,17 +1,15 @@
-rootProject.name = "decosk"
+rootProject.name = "spring-boot-ecommerce"
 
 include("common")
-include("configs")
-include("domains")
-include(":common", ":domains", ":domains:orders")
+include("config")
 include("gateway:gateway")
 include("gateway:discovery")
-include("domains:users")
-include("domains:products")
-include("domains:catalogs")
-include("domains:orders")
-include("domains:reviews")
-include("domains:cqrs")
+include("domain")
+include("domain:user")
+include("domain:product")
+include("domain:catalog")
+include("domain:order")
+include("domain:review")
 
 
 //pluginManagement {

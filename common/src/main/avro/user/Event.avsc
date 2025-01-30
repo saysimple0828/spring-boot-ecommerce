@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "Event",
+  "namespace": "org.saysimple.schema.user",
+  "fields": [
+    { "name": "eventType", "type": "string" },
+    {
+      "name": "event",
+      "type": [
+        "CreateUserEvent",
+        "UpdateUserEvent",
+        "DeactivateUserEvent",
+        "UserCreatedEvent",
+        "UserDeactivatedEvent",
+        "UserUpdatedEvent"
+      ]
+    }
+  ]
+}

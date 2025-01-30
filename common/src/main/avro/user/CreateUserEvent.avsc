@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "CreateUserEvent",
+  "namespace": "org.saysimple.schema.user",
+  "fields": [
+    { "name": "userId", "type": "string" },
+    { "name": "phoneNumber", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "pwd", "type": "string" }
+  ]
+}
