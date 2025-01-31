@@ -15,6 +15,8 @@ kind create cluster --name my-cluster --config kind-config.yaml
 # Helm 저장소 추가 및 업데이트
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add argo https://argoproj.github.io/argo-helm
+helm repo add gitlab https://charts.gitlab.io/
+
 helm repo update
 
 # Ingress-Nginx 설치
@@ -23,27 +25,41 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
   --create-namespace \
   --set controller.service.type=NodePort \
   --set controller.service.nodePorts.http=30080
-
 kubectl get all -n ingress-nginx
 
-# Argo CD 설치
-helm install argocd argo/argo-cd --namespace argocd --create-namespace
+# GitLab 설치
+kubectl create namespace gitlab
+kubectl create secret tls gitlab-tls \
+  -n gitlab \
+  --cert=tls.crt --key=tls.key
+helm install gitlab gitlab/gitlab \
+  -n gitlab \
+  --create-namespace \
+  -f ./gitlab/values.yaml
+kubectl apply -f ./gitlab/gitlab-ing.yaml
 
-# TLS 인증서 생성 (Self-Signed 또는 미리 준비된 인증서 사용)
+kubectl get secret -n gitlab
+kubectl get all -n gitlab
+
+echo "GitLab 초기 관리자 비밀번호:"
+kubectl get secret gitlab-gitlab-initial-root-password -n gitlab -ojsonpath='{.data.password}' | base64 --decode ; echo
+
+# Argo CD 설치
 kubectl create secret tls argocd-tls -n argocd \
   --cert=tls.crt --key=tls.key
+helm install argocd argo/argo-cd --namespace argocd --create-namespace
+kubectl apply -f ./argocd/argocd-ing.yaml
 
 kubectl get secret -n argocd
-
-# ArgoCD Ingress 적용
-kubectl apply -f ./ing/argocd-ing.yaml
-
 kubectl get all -n argocd
 
 # ArgoCD 초기 관리자 비밀번호 출력
 echo "ArgoCD 초기 관리자 비밀번호:"
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-echo ""
+
+# 서비스 호스트 추가
+grep -qxF "127.0.0.1 gitlab.local" /etc/hosts || echo "127.0.0.1 gitlab.local" | sudo tee -a /etc/hosts
+grep -qxF "127.0.0.1 argocd.local" /etc/hosts || echo "127.0.0.1 argocd.local" | sudo tee -a /etc/hosts
 
 # 포트포워딩을 백그라운드에서 실행 (nohup 사용)
 echo "Ingress 포트포워딩을 백그라운드에서 실행합니다..."

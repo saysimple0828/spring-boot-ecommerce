@@ -1,0 +1,33 @@
+global:
+  edition: ce  # ce (Community Edition) 또는 ee (Enterprise Edition) 선택
+  hosts:
+    domain: gitlab.local  # 사용할 도메인 입력
+    externalIP: ""  # 클러스터의 외부 IP 주소
+  ingress:
+    configureCertmanager: false  # Cert-Manager 사용 여부
+    tls:
+      enabled: true
+      secretName: gitlab-tls  # TLS 인증서 시크릿 이름
+
+certmanager:
+  install: false  # Cert-Manager가 이미 설치되어 있다면 false
+
+gitlab:
+  webservice:
+    replicas: 2  # 웹 서비스 복제본 수
+  gitlab-shell:
+    replicas: 1
+  gitlab-pages:
+    replicas: 1
+  unicorn:
+    replicas: 2
+  sidekiq:
+    replicas: 2
+
+postgresql:
+  install: true
+  postgresqlPassword: "your-postgresql-password"  # PostgreSQL 비밀번호 설정
+
+redis:
+  install: true
+  password: "your-redis-password"  # Redis 비밀번호 설정
