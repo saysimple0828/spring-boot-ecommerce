@@ -23,11 +23,12 @@ gitlab:
     replicas: 2
   sidekiq:
     replicas: 2
+  gitlabInitialRootPassword: "root"
 
 postgresql:
   install: true
-  postgresqlPassword: "your-postgresql-password"  # PostgreSQL 비밀번호 설정
+  postgresqlPassword: "root"  # PostgreSQL 비밀번호 설정
 
 redis:
   install: true
-  password: "your-redis-password"  # Redis 비밀번호 설정
+  password: "root"  # Redis 비밀번호 설정
