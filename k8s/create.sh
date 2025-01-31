@@ -16,12 +16,12 @@ kind create cluster --name my-cluster --config kind-config.yaml
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo add gitlab https://charts.gitlab.io/
+helm repo add harbor https://helm.goharbor.io
 
 helm repo update
 
-# Metrics server 설치
+echo "Metrics server 설치"
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
 kubectl get pods -n kube-system
 
 echo "ingress-nginx 설치..."
@@ -31,6 +31,12 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
   --set controller.service.type=NodePort \
   --set controller.service.nodePorts.http=30080
 kubectl get all -n ingress-nginx
+
+echo "Harbor 설치..."
+kubectl create namespace harbor
+kubectl create secret tls harbor-tls -n harbor \
+  --cert=tls.crt --key=tls.key
+helm install harbor harbor/harbor -n harbor -f ./harbor/values.yaml
 
 echo "GitLab 설치..."
 kubectl create namespace gitlab
@@ -65,6 +71,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 # 서비스 호스트 추가
 grep -qxF "127.0.0.1 gitlab.gitlab.local" /etc/hosts || echo "127.0.0.1 gitlab.gitlab.local" | sudo tee -a /etc/hosts
 grep -qxF "127.0.0.1 argocd.local" /etc/hosts || echo "127.0.0.1 argocd.local" | sudo tee -a /etc/hosts
+grep -qxF "127.0.0.1 core.harbor.local" /etc/hosts || echo "127.0.0.1 core.harbor.local" | sudo tee -a /etc/hosts
+grep -qxF "127.0.0.1 core.harbor.domain" /etc/hosts || echo "127.0.0.1 core.harbor.domain" | sudo tee -a /etc/hosts
 
 # 포트포워딩을 백그라운드에서 실행 (nohup 사용)
 echo "Ingress 포트포워딩을 백그라운드에서 실행합니다..."
