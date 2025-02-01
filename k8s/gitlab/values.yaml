@@ -9,6 +9,8 @@ global:
       enabled: true
       secretName: gitlab-tls  # TLS 인증서 시크릿 이름
 
+externalUrl: https://gitlab.gitlab.local
+
 certmanager:
   install: false  # Cert-Manager가 이미 설치되어 있다면 false
 

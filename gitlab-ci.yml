@@ -1,0 +1,102 @@
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  # Harbor 관련 정보 (CI/CD 변수로도 등록 가능)
+  HARBOR_REGISTRY: "harbor.my-domain.com"
+  HARBOR_PROJECT: "my-project"
+  # 태그 푸시일 경우 태그 이름을, 그렇지 않으면 빈 값을 IMAGE_TAG로 사용
+  IMAGE_TAG: "$CI_COMMIT_TAG"
+
+image: docker:latest
+
+services:
+  - docker:dind
+
+before_script:
+  - echo "Logging in to Harbor registry at $HARBOR_REGISTRY"
+  - docker login -u "$HARBOR_USERNAME" -p "$HARBOR_PASSWORD" $HARBOR_REGISTRY
+
+##############################
+# Build Stage
+##############################
+
+build_user:
+  stage: build
+  script:
+    - echo "Building User service..."
+    - cd domain/user
+    - ./gradlew clean build -x test
+    - docker build -t $HARBOR_REGISTRY/$HARBOR_PROJECT/user:${IMAGE_TAG} .
+  artifacts:
+    paths:
+      - domain/user/build/libs/*.jar
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /user/i'
+      when: always
+    - when: never
+
+build_order:
+  stage: build
+  script:
+    - echo "Building Order service..."
+    - cd domain/order
+    - ./gradlew clean build -x test
+    - docker build -t $HARBOR_REGISTRY/$HARBOR_PROJECT/order:${IMAGE_TAG} .
+  artifacts:
+    paths:
+      - domain/order/build/libs/*.jar
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /order/i'
+      when: always
+    - when: never
+
+##############################
+# Push Stage
+##############################
+
+push_user:
+  stage: push
+  script:
+    - echo "Pushing User image..."
+    - docker push $HARBOR_REGISTRY/$HARBOR_PROJECT/user:${IMAGE_TAG}
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /user/i'
+      when: always
+    - when: never
+
+push_order:
+  stage: push
+  script:
+    - echo "Pushing Order image..."
+    - docker push $HARBOR_REGISTRY/$HARBOR_PROJECT/order:${IMAGE_TAG}
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /order/i'
+      when: always
+    - when: never
+
+##############################
+# Deploy Stage
+##############################
+
+deploy_user:
+  stage: deploy
+  script:
+    - echo "Deploying User service via ArgoCD..."
+    - argocd app sync user-service-app --grpc-web --insecure
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /user/i'
+      when: always
+    - when: never
+
+deploy_order:
+  stage: deploy
+  script:
+    - echo "Deploying Order service via ArgoCD..."
+    - argocd app sync order-service-app --grpc-web --insecure
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /order/i'
+      when: always
+    - when: never

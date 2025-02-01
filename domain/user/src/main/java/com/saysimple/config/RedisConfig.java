@@ -17,13 +17,9 @@ public class RedisConfig {
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(new RedisClusterConfiguration()
-                .clusterNode("localhost", 7001)
-                .clusterNode("localhost", 7002)
-                .clusterNode("localhost", 7003)
-                .clusterNode("localhost", 7004)
-                .clusterNode("localhost", 7005)
-                .clusterNode("localhost", 7006));
+        RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration();
+        clusterConfiguration.clusterNode("my-redis-cluster-headless", 6379);
+        return new LettuceConnectionFactory(clusterConfiguration);
     }
 
     @Bean

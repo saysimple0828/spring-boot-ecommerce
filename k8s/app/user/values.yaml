@@ -1,0 +1,27 @@
+# values.yaml
+
+# Rollout 관련 설정 (Argo Rollouts 사용)
+rollout:
+  enabled: true
+  steps:
+    # 첫 번째 단계: 전체 트래픽의 20%로 설정
+    - setWeight: 20
+    # 두 번째 단계: 잠시 멈춤 (수동 승인을 위해 pause 단계 사용)
+    - pause: {}
+    # 세 번째 단계: 전체 트래픽의 50%로 설정
+    - setWeight: 50
+    # 네 번째 단계: 10분 동안 일시 정지 후 배포 계속 진행
+    - pause:
+        duration: "10m"
+
+# 애플리케이션 복제본 수
+replicaCount: 3
+
+# Docker 이미지 관련 설정
+image:
+  # Harbor에 올린 스프링 부트 애플리케이션 이미지 경로 (자신의 Harbor 도메인 및 프로젝트/네임스페이스에 맞게 수정)
+  repository: "harbor.my-domain/my-namespace/my-springboot-app"
+  # 사용할 이미지 태그 (예: latest 또는 배포 버전)
+  tag: "latest"
+  # 이미지 풀 정책
+  pullPolicy: "IfNotPresent"
