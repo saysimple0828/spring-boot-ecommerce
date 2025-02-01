@@ -50,6 +50,7 @@ kubectl create secret tls gitlab-tls \
   --cert=tls.crt --key=tls.key
 
 
+
 kubectl get secret -n gitlab
 kubectl get all -n gitlab
 
