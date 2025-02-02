@@ -11,20 +11,41 @@ global:
 
 externalUrl: https://gitlab.gitlab.local
 
+gitlab-runner:
+  install: true
+  rbac:
+    create: true
+  runners:
+    locked: false
+    secret: "nonempty"
+    config: |
+      [[runners]]
+        name = "my-docker-runner"
+        url = "https://gitlab.gitlab.local"
+        
+        executor = "docker"
+
+        [runners.docker]
+          image = "docker:20.10.16-dind"
+          hostname = "my-runner-job"
+
+          privileged = true
+          tls_verify = false
+          # extra_hosts = ["도메인:IP"] 형식
+          extra_hosts = ["gitlab.gitlab.local:10.96.209.217"]
+  podAnnotations:
+    gitlab.com/prometheus_scrape: "true"
+    gitlab.com/prometheus_port: 9252
+  podSecurityContext:
+    seccompProfile:
+      type: "RuntimeDefault"
+
 certmanager:
   install: false  # Cert-Manager가 이미 설치되어 있다면 false
 
 gitlab:
   webservice:
-    replicas: 2  # 웹 서비스 복제본 수
-  gitlab-shell:
-    replicas: 1
-  gitlab-pages:
-    replicas: 1
-  unicorn:
-    replicas: 2
-  sidekiq:
-    replicas: 2
+    replicas: 1  # 웹 서비스 복제본 수
   gitlabInitialRootPassword: "root"
 
 postgresql:

@@ -1,4 +1,4 @@
-# harbor-values.yaml
+# harbor-gitlab-values.yaml
 expose:
   type: ingress
   tls:

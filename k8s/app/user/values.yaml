@@ -1,4 +1,4 @@
-# values.yaml
+# gitlab-values.yaml
 
 # Rollout 관련 설정 (Argo Rollouts 사용)
 rollout:

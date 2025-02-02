@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# 포트포워딩이 이미 실행 중인지 확인
-PORT_FORWARD_PID=$(pgrep -f "kubectl port-forward svc/ingress-nginx-controller -n ingress-nginx 8443:443")
-
-if [ -n "$PORT_FORWARD_PID" ]; then
-  echo "포트포워딩이 이미 실행 중입니다. 종료합니다..."
-  kill "$PORT_FORWARD_PID"
-  sleep 2  # 안전하게 종료될 때까지 대기
-fi
-
 echo "Kind 클러스터 생성..."
 kind create cluster --name my-cluster --config kind-config.yaml
 
@@ -27,10 +18,12 @@ kubectl get pods -n kube-system
 
 echo "ingress-nginx 설치..."
 helm install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  --set controller.service.type=NodePort \
-  --set controller.service.nodePorts.http=30080
+    --namespace ingress-nginx \
+    --create-namespace \
+    --set controller.service.type=NodePort \
+    --set controller.service.nodePorts.http=30080 \
+    --set controller.service.nodePorts.https=30443
+
 kubectl get all -n ingress-nginx
 
 echo "Harbor 설치..."
@@ -41,18 +34,38 @@ helm install harbor harbor/harbor -n harbor -f ./harbor/values.yaml
 
 echo "GitLab 설치..."
 kubectl create namespace gitlab
+
+helm uninstall gitlab -n gitlab
 helm install gitlab gitlab/gitlab \
   -n gitlab \
   --create-namespace \
   -f ./gitlab/values.yaml
+
 kubectl create secret tls gitlab-tls \
   -n gitlab \
   --cert=tls.crt --key=tls.key
 
-
-
-kubectl get secret -n gitlab
 kubectl get all -n gitlab
+
+echo "CoreDNS에 호스트 추가"
+cp coredns_org.yaml coredns.yaml
+
+INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.spec.clusterIP}')
+if [ -z "$INGRESS_IP" ]; then
+  echo "ingress-nginx-controller 서비스의 IP를 조회하지 못했습니다. 확인하세요."
+  exit 1
+fi
+echo "조회된 Ingress IP: $INGRESS_IP"
+sed -i '' 's/\$INGRESS_NGINX/'"$INGRESS_IP"'/g' coredns.yaml
+kubectl apply --force -f coredns.yaml
+
+kubectl logs -n kube-system -l k8s-app=kube-dns
+
+echo "GitLab Runner 설치..."
+helm install --namespace gitlab gitlab-runner -f ./gitlab/runner/values.yaml gitlab/gitlab-runner
+helm uninstall --namespace gitlab gitlab-runner
+
+k get pod -n gitlab | grep runner
 
 echo "pwd 초기화"
 > pwd.txt
@@ -70,6 +83,7 @@ helm install argocd argo/argo-cd --namespace argocd --create-namespace
 kubectl apply -f ./argocd/argocd-ing.yaml
 
 kubectl get secret -n argocd
+kubectl get ingress -n argocd
 kubectl get all -n argocd
 
 echo "ArgoCD 초기 관리자 아이디: admin, 비밀번호:"
@@ -79,14 +93,11 @@ echo "" >> pwd.txt
 # Redis Cluster 설치
 helm install my-redis-cluster bitnami/redis-cluster --namespace redis --create-namespace
 
+10.96.96.139
 
 # 서비스 호스트 추가
 grep -qxF "127.0.0.1 gitlab.gitlab.local" /etc/hosts || echo "127.0.0.1 gitlab.gitlab.local" | sudo tee -a /etc/hosts
 grep -qxF "127.0.0.1 argocd.local" /etc/hosts || echo "127.0.0.1 argocd.local" | sudo tee -a /etc/hosts
 grep -qxF "127.0.0.1 harbor.domain" /etc/hosts || echo "127.0.0.1 harbor.domain" | sudo tee -a /etc/hosts
 
-# 포트포워딩을 백그라운드에서 실행 (nohup 사용)
-echo "Ingress 포트포워딩을 백그라운드에서 실행합니다..."
-nohup kubectl port-forward svc/ingress-nginx-controller -n ingress-nginx 8443:443 > /dev/null 2>&1 &
-
-echo "스크립트 실행 완료!"
+echo "이커머스 설치 완료."

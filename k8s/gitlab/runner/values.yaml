@@ -1,0 +1,61 @@
+# runner-values.yaml
+
+## GitLab Runner 기본 설정
+## Runner가 접속할 GitLab 주소와 등록 토큰(인스턴스, 그룹, 프로젝트 토큰)을 설정
+gitlabUrl: "https://gitlab.gitlab.local"
+runnerRegistrationToken: "glrt-t1_KN8HRGxUiusPGGRcmdhH"
+
+## 동시에 실행 가능한 파이프라인(잡) 수
+concurrent: 5
+
+## RBAC(권한) 설정
+rbac:
+  create: true
+
+## PodSecurityPolicy(PSP) 등이 필요한 환경이라면:
+## psp:
+##   create: true
+
+## Runner Pod 설정
+## 아래 'config:' 섹션이 GitLab Runner의 설정 toml 내용을 직접 기입하는 곳
+runners:
+  configOnly: true
+  config: |
+    [[runners]]
+      [runners.kubernetes]
+      image = "ubuntu:22.04"
+      {{- if .Values.global.minio.enabled }}
+      [runners.cache]
+        Type = "s3"
+        Path = "gitlab-runner"
+        Shared = true
+        [runners.cache.s3]
+          ServerAddress = {{ include "gitlab-runner.cache-tpl.s3ServerAddress" . }}
+          BucketName = "runner-cache"
+          BucketLocation = "us-east-1"
+          Insecure = false
+      {{ end }}
+  privileged: true
+
+## 추가 Pod 설정 (선택)
+#resources:
+#  requests:
+#    cpu: 100m
+#    memory: 256Mi
+#  limits:
+#    cpu: 200m
+#    memory: 512Mi
+
+## 만약 Executor가 Kubernetes 등이 아니라 Docker인데,
+## GitLab Runner 자체는 K8s에서 Deploy되므로 serviceAccount 등의 설정도 가능
+#serviceAccount:
+#  create: true
+#  name: ""
+
+## 만약 NodeSelector / Tolerations이 필요하면 아래처럼 지정:
+## nodeSelector:
+##   kubernetes.io/os: linux
+## tolerations:
+##   - key: "key"
+##     operator: "Exists"
+##     effect: "NoSchedule"
